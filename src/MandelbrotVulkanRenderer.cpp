@@ -640,7 +640,7 @@ void MandelbrotVulkanRenderer::createGraphicsPipeline() {
     viewport.maxDepth = 1.0f;
 
     vk::Rect2D scissor;
-    scissor.offset = { 0, 0 };
+    scissor.offset = vk::Offset2D(0, 0);
     scissor.extent = _swap_chain_extent;
 
     vk::PipelineViewportStateCreateInfo viewport_state;
@@ -700,10 +700,11 @@ void MandelbrotVulkanRenderer::createGraphicsPipeline() {
 
     vk::PipelineCache cache;
 
-    _graphics_pipeline = _device->createGraphicsPipelineUnique(cache, pipeline_info);
-    if (!_graphics_pipeline) {
+    auto pipeline = _device->createGraphicsPipelineUnique(cache, pipeline_info);
+    if (!pipeline.value)
         throw std::runtime_error("failed to create graphics pipeline!");
-    }
+
+    _graphics_pipeline = std::move(pipeline.value);
 }
 
 void MandelbrotVulkanRenderer::createFramebuffers() {
@@ -1111,7 +1112,7 @@ void MandelbrotVulkanRenderer::createCommandBuffers() {
         vk::RenderPassBeginInfo render_pass_info;
         render_pass_info.renderPass = *_render_pass;
         render_pass_info.framebuffer = *_swap_chain_framebuffers[i];
-        render_pass_info.renderArea.offset = { 0, 0 };
+        render_pass_info.renderArea.offset = vk::Offset2D(0, 0);
         render_pass_info.renderArea.extent = _swap_chain_extent;
 
         vk::ClearValue clear_color = std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
@@ -1169,7 +1170,10 @@ void MandelbrotVulkanRenderer::updateUniformBuffer(uint32_t current_image) {
 }
 
 void MandelbrotVulkanRenderer::drawFrame() {
-    _device->waitForFences(*_in_flight_fences[_current_frame], VK_TRUE, UINT64_MAX);
+    const vk::Result wait_result_in_flight_fences = _device->waitForFences(*_in_flight_fences[_current_frame], VK_TRUE, UINT64_MAX);
+    if (wait_result_in_flight_fences != vk::Result::eSuccess &&
+        wait_result_in_flight_fences != vk::Result::eTimeout)
+        return;
 
     uint32_t image_index;
     try
@@ -1186,7 +1190,10 @@ void MandelbrotVulkanRenderer::drawFrame() {
     updateUniformBuffer(image_index);
 
     if (_images_in_flight[image_index] != vk::Fence()) {
-        _device->waitForFences(_images_in_flight[image_index], VK_TRUE, UINT64_MAX);
+        const vk::Result wait_result_images_in_flight = _device->waitForFences(_images_in_flight[image_index], VK_TRUE, UINT64_MAX);
+        if (wait_result_images_in_flight != vk::Result::eSuccess &&
+            wait_result_images_in_flight != vk::Result::eTimeout)
+            return;
     }
     _images_in_flight[image_index] = *_in_flight_fences[_current_frame];
 

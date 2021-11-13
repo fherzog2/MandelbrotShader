@@ -32,7 +32,7 @@ add_executable(MandelbrotShader src/gl_tools.h
                                 src/util.h
                                 ${SHADERS}
                                 ${COMPILED_SHADERS})
-target_link_libraries(MandelbrotShader PRIVATE glm glfw GLEW::GLEW Vulkan::Vulkan)
+target_link_libraries(MandelbrotShader PRIVATE glm::glm glfw GLEW::GLEW Vulkan::Vulkan)
 target_compile_definitions(MandelbrotShader PRIVATE VK_USE_PLATFORM_WIN32_KHR)
 target_include_directories(MandelbrotShader PRIVATE Vulkan::Vulkan)
 set_property(TARGET MandelbrotShader PROPERTY CXX_STANDARD 17)

@@ -230,7 +230,9 @@ void MandelbrotShaderApp::updateWindowTitle()
 ImageData MandelbrotShaderApp::loadColorMap(const std::filesystem::path& filename)
 {
 #ifdef _MSC_VER
-    FILE* file = _wfopen(filename.c_str(), L"rb");
+    FILE* file;
+    if (_wfopen_s(&file, filename.c_str(), L"rb") != 0)
+        return ImageData();
 #else
     FILE* file = fopen(filename.c_str(), "rb");
 #endif
